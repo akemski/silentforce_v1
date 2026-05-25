@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SF — Combined</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IM+Fell+English&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;background:#060606;overflow:hidden;cursor:crosshair;}
+
+.noise{
+  position:fixed;inset:0;z-index:1;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:0.12;animation:ns 0.08s steps(1) infinite;
+}
+@keyframes ns{0%{transform:translate(0,0)}25%{transform:translate(-3px,2px)}50%{transform:translate(2px,-3px)}75%{transform:translate(3px,2px)}100%{transform:translate(-2px,3px)}}
+.vignette{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.93) 100%);}
+.scanlines{position:fixed;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px);}
+.grain{position:fixed;inset:0;z-index:9999;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:0.04;animation:ns 0.12s steps(1) infinite;}
+
+/* ── PHASE 1: BLINK DOT ── */
+#dot{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:6px;height:6px;
+  background:#c0392b;border-radius:50%;
+  box-shadow:0 0 10px #c0392b,0 0 28px rgba(192,57,43,0.5);
+  z-index:20;
+  opacity:0;
+  transition:opacity 0.6s ease;
+}
+#dot.show{opacity:1;animation:dotPulse 0.9s ease-in-out infinite;}
+#dot.hide{opacity:0;}
+@keyframes dotPulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1;}50%{transform:translate(-50%,-50%) scale(0.5);opacity:0.2;}}
+
+/* ── PHASE 2: RADIO ── */
+#radio-wrap{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:20;
+  opacity:0;
+  transition:opacity 1.8s ease;
+}
+#radio-wrap.show{opacity:1;}
+/* shift radio up when text appears */
+#radio-wrap.shift{
+  top:38%;
+  transition:opacity 1.8s ease, top 1.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+.radio-body{
+  width:300px;height:160px;
+  background:linear-gradient(150deg,#2e2820 0%,#1a160f 60%,#100d08 100%);
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.05);
+  box-shadow:0 30px 80px rgba(0,0,0,0.95),0 1px 0 rgba(255,255,255,0.04) inset;
+  position:relative;
+}
+/* antenna */
+.radio-body::before{
+  content:'';position:absolute;
+  top:-52px;right:48px;
+  width:2px;height:55px;
+  background:linear-gradient(180deg,#888,#444);
+  border-radius:2px;transform:rotate(7deg);transform-origin:bottom;
+}
+.r-speaker{
+  position:absolute;left:12px;top:16px;
+  width:138px;height:118px;
+  background:
+    repeating-linear-gradient(0deg,transparent,transparent 5px,rgba(0,0,0,0.5) 5px,rgba(0,0,0,0.5) 6px),
+    repeating-linear-gradient(90deg,transparent,transparent 5px,rgba(0,0,0,0.5) 5px,rgba(0,0,0,0.5) 6px),
+    #0e0b06;
+  border-radius:6px;border:1px solid rgba(0,0,0,0.8);
+  box-shadow:inset 0 3px 10px rgba(0,0,0,0.9);
+  overflow:hidden;
+}
+.r-glow{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,rgba(192,57,43,0) 0%,transparent 70%);
+  transition:background 1s ease;
+}
+.r-glow.active{
+  background:radial-gradient(ellipse at center,rgba(192,57,43,0.25) 0%,transparent 70%);
+  animation:glowPulse 1.5s ease-in-out infinite;
+}
+@keyframes glowPulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+
+.r-display{
+  position:absolute;top:14px;right:12px;
+  width:122px;height:32px;
+  background:#060e06;border-radius:3px;
+  border:1px solid rgba(0,0,0,0.9);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.95);
+  display:flex;align-items:center;padding:0 8px;
+}
+.r-freq{
+  font-family:'Share Tech Mono',monospace;
+  font-size:16px;color:rgba(80,200,80,0.75);
+  letter-spacing:2px;
+}
+
+/* single blink light on radio */
+.r-light{
+  position:absolute;top:14px;right:140px;
+  width:7px;height:7px;
+  background:#c0392b;border-radius:50%;
+  box-shadow:0 0 8px #c0392b,0 0 18px rgba(192,57,43,0.5);
+  animation:dotPulse2 1s ease-in-out infinite;
+}
+@keyframes dotPulse2{0%,100%{opacity:1;}50%{opacity:0.15;}}
+
+.r-knobs{position:absolute;bottom:12px;left:12px;display:flex;gap:10px;align-items:center;}
+.r-knob{width:24px;height:24px;background:radial-gradient(circle at 35% 35%,#555,#1a1a1a);border-radius:50%;border:1px solid rgba(255,255,255,0.06);box-shadow:0 3px 8px rgba(0,0,0,0.9);position:relative;}
+.r-knob::after{content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);width:2px;height:7px;background:rgba(255,255,255,0.2);border-radius:1px;}
+.r-knob.sm{width:17px;height:17px;}
+.r-knob.sm::after{top:3px;height:5px;}
+
+.r-tuner{position:absolute;bottom:12px;right:12px;width:122px;}
+.r-tlabel{font-family:'Share Tech Mono',monospace;font-size:6px;letter-spacing:2px;color:rgba(255,255,255,0.18);margin-bottom:6px;}
+.r-track{width:100%;height:5px;background:#080602;border-radius:3px;border:1px solid rgba(0,0,0,0.8);box-shadow:inset 0 2px 4px rgba(0,0,0,0.9);position:relative;}
+.r-fill{height:100%;width:0%;background:linear-gradient(90deg,#5a1010,#c0392b);border-radius:3px;box-shadow:0 0 6px rgba(192,57,43,0.4);transition:width 2s ease;}
+.r-fill.locked{width:73%;}
+.r-thumb{position:absolute;top:50%;left:0%;transform:translate(-50%,-50%);width:11px;height:11px;background:linear-gradient(135deg,#bbb,#777);border-radius:50%;border:1px solid rgba(255,255,255,0.15);box-shadow:0 2px 6px rgba(0,0,0,0.9);transition:left 2s ease;}
+.r-thumb.locked{left:73%;}
+
+/* ── PHASE 3: SCRAMBLE TEXT ── */
+#text-area{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  display:flex;flex-direction:column;
+  align-items:center;
+  padding-bottom:22vh;
+  z-index:20;
+  gap:14px;
+  opacity:0;
+  transition:opacity 0.8s ease;
+}
+#text-area.show{opacity:1;}
+
+.sc-row{
+  font-family:'Share Tech Mono',monospace;
+  letter-spacing:7px;
+  text-transform:uppercase;
+  text-align:center;
+  color:rgba(150,145,138,0.7);
+  font-size:11px;
+  min-height:18px;
+}
+.sc-row.lg{
+  font-size:clamp(22px,4vw,42px);
+  letter-spacing:10px;
+  color:rgba(210,205,198,0.9);
+}
+.sc-row.accent{
+  font-size:10px;
+  color:rgba(192,57,43,0.75);
+  letter-spacing:8px;
+}
+
+/* flash */
+#flash{position:fixed;inset:0;z-index:500;background:#c0392b;opacity:0;pointer-events:none;}
+
+/* main placeholder */
+#main-ph{
+  position:fixed;inset:0;z-index:400;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;
+  opacity:0;pointer-events:none;
+  transition:opacity 2s ease;
+  background:#060606;
+}
+#main-ph.show{opacity:1;pointer-events:all;}
+.mph-t{font-family:'IM Fell English',serif;font-size:clamp(40px,7vw,90px);color:rgba(200,195,188,0.9);letter-spacing:6px;}
+.mph-s{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:5px;color:rgba(192,57,43,0.45);}
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="grain"></div>
+<div class="vignette"></div>
+<div class="scanlines"></div>
+<div id="flash"></div>
+
+<!-- DOT -->
+<div id="dot"></div>
+
+<!-- RADIO -->
+<div id="radio-wrap">
+  <div class="radio-body">
+    <div class="r-speaker"><div class="r-glow" id="r-glow"></div></div>
+    <div class="r-display"><div class="r-freq" id="r-freq">---.--</div></div>
+    <div class="r-light"></div>
+    <div class="r-knobs">
+      <div class="r-knob"></div>
+      <div class="r-knob sm"></div>
+    </div>
+    <div class="r-tuner">
+      <div class="r-tlabel">TUNER</div>
+      <div class="r-track">
+        <div class="r-fill" id="r-fill"></div>
+        <div class="r-thumb" id="r-thumb"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRAMBLE TEXT -->
+<div id="text-area">
+  <div class="sc-row" id="sc0"></div>
+  <div class="sc-row lg" id="sc1"></div>
+  <div class="sc-row accent" id="sc2"></div>
+</div>
+
+<!-- MAIN -->
+<div id="main-ph">
+  <div class="mph-t">Silent Force</div>
+  <div class="mph-s">— Willkommen —</div>
+</div>
+
+<script>
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?#@*><';
+function rand(){ return chars[Math.floor(Math.random()*chars.length)]; }
+
+function scrambleTo(el, finalText, duration, cb){
+  const len = finalText.length;
+  let frame = 0;
+  const total = Math.floor(duration / 45);
+  const startReveal = Math.floor(total * 0.55);
+
+  const iv = setInterval(()=>{
+    frame++;
+    let out = '';
+    for(let i=0;i<len;i++){
+      if(finalText[i]===' '){ out+=' '; continue; }
+      const revealed = frame > startReveal
+        ? i < Math.floor(len * Math.min((frame-startReveal)/(total-startReveal)*1.4,1))
+        : false;
+      out += revealed ? finalText[i] : rand();
+    }
+    el.textContent = out;
+    if(frame>=total){ clearInterval(iv); el.textContent=finalText; if(cb)cb(); }
+  }, 45);
+}
+
+// freq flicker
+const freqEl = document.getElementById('r-freq');
+const freqVals = ['---.--','103.█','---.--','???','---.--','103.7','---.--'];
+let fi=0;
+const freqIv = setInterval(()=>{ fi=(fi+1)%freqVals.length; freqEl.textContent=freqVals[fi]; }, 700);
+
+// ── SEQUENCE ──
+const dot = document.getElementById('dot');
+const radioWrap = document.getElementById('radio-wrap');
+const textArea = document.getElementById('text-area');
+const flash = document.getElementById('flash');
+
+// Step 1: dot appears after 3s
+setTimeout(()=>{ dot.classList.add('show'); }, 3000);
+
+// Step 2: radio fades in after 5.5s, dot fades
+setTimeout(()=>{
+  dot.classList.add('hide');
+  setTimeout(()=>{ radioWrap.classList.add('show'); }, 300);
+}, 5500);
+
+// Step 3: tuner animates — signal locking in
+setTimeout(()=>{
+  document.getElementById('r-fill').classList.add('locked');
+  document.getElementById('r-thumb').classList.add('locked');
+  // freq settles
+  clearInterval(freqIv);
+  freqEl.textContent = '103.7';
+  document.getElementById('r-glow').classList.add('active');
+}, 8500);
+
+// Step 4: radio shifts up, text area appears
+setTimeout(()=>{
+  radioWrap.classList.add('shift');
+  setTimeout(()=>{
+    textArea.classList.add('show');
+    // scramble lines one by one
+    scrambleTo(document.getElementById('sc0'), 'UNKNOWN FREQUENCY', 1800, ()=>{
+      setTimeout(()=>{
+        scrambleTo(document.getElementById('sc1'), 'SIGNAL DETECTED', 2200, ()=>{
+          setTimeout(()=>{
+            scrambleTo(document.getElementById('sc2'), 'ACCESS GRANTED', 1600, ()=>{
+              // flash + transition
+              setTimeout(()=>{
+                let f=0;
+                const fi2=setInterval(()=>{
+                  flash.style.opacity=f%2===0?'0.55':'0';
+                  flash.style.transition='opacity 0.07s';
+                  f++;
+                  if(f>5){
+                    clearInterval(fi2);
+                    flash.style.opacity='0';
+                    radioWrap.style.opacity='0';
+                    radioWrap.style.transition='opacity 0.8s ease';
+                    textArea.style.opacity='0';
+                    textArea.style.transition='opacity 0.8s ease';
+                    setTimeout(()=>{
+                      document.getElementById('main-ph').classList.add('show');
+                    },800);
+                  }
+                },110);
+              },700);
+            });
+          },400);
+        });
+      },400);
+    });
+  }, 800);
+}, 10500);
+</script>
+</body>
+</html>
